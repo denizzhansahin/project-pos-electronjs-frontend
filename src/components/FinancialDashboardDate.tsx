@@ -171,7 +171,7 @@ export function FinancialDashboardDate({ completedOrders, products, selectedDate
                     </tr>
                 </thead>
                 <tbody>
-                    {dailySummaries.map((summary) => (
+                    {dailySummaries.slice(0, 10).map((summary) => (
                     <tr key={summary.key} className="border-b last:border-b-0 hover:bg-gray-50">
                         {!selectedDate && <td className="py-3 px-3">{summary.date}</td>}
                         <td className="py-3 px-3">{summary.orderCount}</td>
@@ -179,7 +179,7 @@ export function FinancialDashboardDate({ completedOrders, products, selectedDate
                         <td className="py-3 px-3">
                         <div className="space-y-1">
                              {summary.topProducts.length === 0 && <span className="text-xs text-gray-500">N/A</span>}
-                             {summary.topProducts.slice(0, 3).map((product) => (
+                             {summary.topProducts.slice(0, selectedDate ? summary.topProducts.length : 20).map((product) => (
                             <div key={product.productId} className="text-sm">
                                 {product.name} ({product.quantity}x) - ₺{product.total.toFixed(2)}
                             </div>
@@ -213,7 +213,7 @@ export function FinancialDashboardDate({ completedOrders, products, selectedDate
                     </tr>
                 </thead>
                 <tbody>
-                    {completedOrders.slice(0, 10).map((order) => (
+                    {(selectedDate ? completedOrders : completedOrders.slice(0, 5)).map((order) => (
                     <tr key={order.id} className="border-b last:border-b-0 hover:bg-gray-50">
                         <td className="py-3 px-3">
                          {new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -221,7 +221,7 @@ export function FinancialDashboardDate({ completedOrders, products, selectedDate
                         <td className="py-3 px-3">{order.tableName || '-'}</td>
                         <td className="py-3 px-3">
                         <div className="space-y-1">
-                            {order.items.map((item) => (
+                            {order.items.slice(0, selectedDate ? order.items.length : 20).map((item) => (
                             <div key={item.id} className="text-sm"> {/* item.id kullanıldı */}
                                 {item.quantity}x {item.product?.name ?? products.find(p => p.id === item.product.id)?.name ?? 'Unknown'}
                             </div>
