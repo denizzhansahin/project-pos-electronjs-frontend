@@ -5,36 +5,42 @@ import { Navigate, useLocation } from 'react-router-dom';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  allowedRoles?: ('ADMIN' | 'USER')[]; // İzin verilen roller (opsiyonel)
+  allowedRoles?: ('ADMIN' | 'USER')[]; // İzin verilen roller (BÜYÜK HARF)
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { isLoggedIn, user, isLoading: isAuthLoading } = useAuth();
-  const location = useLocation(); // Mevcut konumu al
+  const { isLoggedIn, user, isLoading } = useAuth(); // isLoading'ı context'ten al
+  const location = useLocation();
 
-  if (isAuthLoading) {
-    // Auth context yüklenirken bekle
+  console.log(`ProtectedRoute Guard: Path='${location.pathname}', isLoading=${isLoading}, isLoggedIn=${isLoggedIn}, userRole=${user?.role}, allowedRoles=${allowedRoles}`);
+
+  // 1. AuthContext yükleniyor mu? Bekle.
+  if (isLoading) {
+    console.log("ProtectedRoute: Auth context is loading, showing loading indicator.");
     return <div className="flex justify-center items-center min-h-screen">Checking authentication...</div>;
   }
 
+  // 2. Giriş yapılmış mı? Yapılmadıysa login'e yönlendir.
   if (!isLoggedIn) {
-    // Giriş yapılmamışsa, login sayfasına yönlendir
-    // Mevcut konumu state olarak gönderelim ki login sonrası geri dönebilsin (opsiyonel)
+    console.log("ProtectedRoute: User not logged in, redirecting to /login.");
+    // Kullanıcıyı login'e yönlendirirken, nereden geldiğini state olarak gönder.
+    // Başarılı login sonrası buraya geri yönlendirme yapılabilir.
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Rol kontrolü gerekiyorsa ve kullanıcının rolü izin verilenlerde yoksa
+  // 3. Rol kontrolü gerekli mi? Gerekliyse ve rol uymuyorsa?
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-     // Yetkisiz erişim durumu - /personel'e veya başka bir sayfaya yönlendir
-     console.warn(`Unauthorized access attempt to ${location.pathname} by user with role ${user.role}`);
-     // Eğer personel admin sayfasına girmeye çalışıyorsa personele yönlendirilebilir
+     console.warn(`ProtectedRoute: Unauthorized access attempt to ${location.pathname} by user ${user.email} with role ${user.role}. Allowed roles: ${allowedRoles.join(', ')}. Redirecting.`);
+     // Yetkisiz erişim. Kullanıcının kendi varsayılan sayfasına veya login'e yönlendirilebilir.
+     // Örneğin, USER rolündeki bir kullanıcı /admin'e girmeye çalışırsa /personel'e yönlendir:
      if (user.role === 'USER') {
-         return <Navigate to="/personel" replace />;
+        return <Navigate to="/personel" replace />;
      }
-     // Diğer durumlarda login'e veya yetkisiz sayfasına yönlendir
-    return <Navigate to="/login" replace />; // Veya <Navigate to="/unauthorized" replace />
+     // Diğer yetkisiz durumlarda (veya ADMIN /personel'e girmeye çalışırsa vb.) login'e fallback mantıklı olabilir.
+     return <Navigate to="/login" replace />; // Veya <Navigate to="/unauthorized" replace />;
   }
 
-  // Her şey yolundaysa, istenen bileşeni (children) render et
+  // 4. Tüm kontrollerden geçtiyse, istenen sayfayı (children) göster.
+  console.log(`ProtectedRoute: Access granted to ${location.pathname} for user ${user?.email} with role ${user?.role}.`);
   return <>{children}</>;
 }

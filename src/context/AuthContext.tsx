@@ -2,11 +2,11 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback } from 'react';
 import apiClient from '../services/api';
 
-// Frontend'de kullanılacak tutarlı kullanıcı yapısı
+// Frontend'de kullanılacak tutarlı kullanıcı yapısı (Roller BÜYÜK HARF)
 export interface AuthUser {
-  userId: string; // Backend'den gelen id'yi buraya map edeceğiz (genelde string tutmak daha iyidir)
+  userId: string;
   email: string;
-  role: 'ADMIN' | 'USER'; // Küçük harfli roller
+  role: 'ADMIN' | 'USER';
 }
 
 interface AuthContextType {
@@ -23,53 +23,58 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
+  // isLoading başlangıçta true olmalı ki temizlik bitene kadar yönlendirme olmasın
   const [isLoading, setIsLoading] = useState(true);
 
+  // --- DEĞİŞİKLİK BURADA ---
+  // Uygulama ilk yüklendiğinde localStorage'ı temizle
   useEffect(() => {
-    console.log("AuthProvider: Checking localStorage for auth data...");
-    const storedToken = localStorage.getItem('authToken');
-    const storedUser = localStorage.getItem('authUser');
+    console.log("AuthProvider: Clearing previous session data on startup...");
+    try {
+      // Kayıtlı token ve kullanıcı bilgilerini sil
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('authUser');
+      console.log("AuthProvider: Previous session data cleared from localStorage.");
 
-    if (storedToken && storedUser) {
-      try {
-        const parsedUser: AuthUser = JSON.parse(storedUser);
-        if (parsedUser && parsedUser.userId && parsedUser.email && parsedUser.role) {
-          console.log("AuthProvider: Found valid auth data in localStorage.");
-          setToken(storedToken);
-          setUser(parsedUser);
-          apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-        } else {
-           console.warn("AuthProvider: Invalid user data in localStorage. Clearing.");
-           localStorage.removeItem('authToken');
-           localStorage.removeItem('authUser');
-        }
-      } catch (error) {
-        console.error("AuthProvider: Error parsing localStorage data. Clearing.", error);
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('authUser');
-      }
-    } else {
-        console.log("AuthProvider: No auth data found in localStorage.");
+      // API istemcisindeki Authorization header'ını da temizle (varsa)
+      delete apiClient.defaults.headers.common['Authorization'];
+
+      // State'leri de başlangıç değerlerine çek (emin olmak için)
+      setToken(null);
+      setUser(null);
+
+    } catch (error) {
+      console.error("AuthProvider: Error clearing localStorage on startup.", error);
+      // Hata olsa bile devam etmeye çalışabiliriz, en azından state null olur.
+    } finally {
+      // Temizleme işlemi bittikten sonra yükleme durumunu false yap
+      setIsLoading(false);
+      console.log("AuthProvider: Initial loading complete (after clearing session).");
     }
-    setIsLoading(false);
-  }, []);
+  }, []); // Boş dependency array [], bu etkinin sadece bileşen ilk mount edildiğinde çalışmasını sağlar.
+  // --- DEĞİŞİKLİK SONU ---
+
 
   const login = useCallback((newToken: string, userData: AuthUser) => {
     console.log("AuthProvider: Logging in user:", userData.email, "with role:", userData.role);
     setToken(newToken);
     setUser(userData);
+    // Sadece login işlemi başarılı olduğunda localStorage'a yaz
     localStorage.setItem('authToken', newToken);
     localStorage.setItem('authUser', JSON.stringify(userData));
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+    setIsLoading(false); // Login sonrası yükleme durumu false olmalı
   }, []);
 
   const logout = useCallback(() => {
     console.log("AuthProvider: Logging out.");
     setToken(null);
     setUser(null);
+    // Logout olduğunda da localStorage'ı temizle
     localStorage.removeItem('authToken');
     localStorage.removeItem('authUser');
     delete apiClient.defaults.headers.common['Authorization'];
+    setIsLoading(false); // Logout sonrası da yükleme durumu false
   }, []);
 
   const isLoggedIn = !!token && !!user;

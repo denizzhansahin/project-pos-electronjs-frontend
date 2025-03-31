@@ -1,16 +1,22 @@
-// src/main.tsx (veya index.tsx)
+// src/main.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App'; // Ana Router bileşeni
-import './index.css';
+import App from './App';
 import { AuthProvider } from './context/AuthContext'; // AuthProvider'ı import et
+import './index.css'; // Ana stil dosyanız (Tailwind vb.)
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
- 
+const rootElement = document.getElementById('root');
+
+if (!rootElement) {
+  throw new Error("Fatal Error: Root element 'root' not found in the DOM.");
+}
+
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <AuthProvider> {/* Router'ı ve tüm uygulamayı sar */}
+    {/* AuthProvider tüm uygulamayı sarmalı */}
+    <AuthProvider>
+      {/* App bileşeni artık context'e erişebilir */}
       <App />
     </AuthProvider>
-  </React.StrictMode>
-  
+  </React.StrictMode>,
 );

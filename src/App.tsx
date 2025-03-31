@@ -1,68 +1,111 @@
-// App.tsx (Güncellenmiş)
+// src/App.tsx
 import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import PersonelApp from './pages/Personel';
-import YoneticiApp from './pages/Yonetici';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import PersonelApp from './pages/Personel'; // Doğru yolu kontrol et
+import YoneticiApp from './pages/Yonetici'; // Doğru yolu kontrol et
 import { LoginPage } from './pages/LoginPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
 
-
-
-
-function App() {
+// Rotaları ve ana yönlendirme mantığını içeren bileşen
+function AppRoutes() {
   const { isLoggedIn, user, isLoading } = useAuth();
+  const location = useLocation(); // Anlık konumu almak için
 
-  const DefaultRoute = () => {
-      // Konsol logları debug için kalabilir
-      console.log(`DefaultRoute Check: isLoading=${isLoading}, isLoggedIn=${isLoggedIn}, userRole=${user?.role}`);
+  console.log(`AppRoutes: Path='${location.pathname}', isLoading=${isLoading}, isLoggedIn=${isLoggedIn}, userRole=${user?.role}`);
 
-      if (isLoading) return <div className="flex justify-center items-center min-h-screen">Loading Session...</div>; // Yüklenirken bekle
+  // --- AuthContext Yüklenirken Bekleme ---
+  if (isLoading) {
+    console.log("AppRoutes: Auth context is loading, showing main loading indicator.");
+    // Tüm sayfa yerine sadece rotaların olduğu alanı kaplayan bir yükleyici daha iyi olabilir
+    // veya tam ekran yükleyici de kalabilir.
+    return <div className="flex justify-center items-center min-h-screen">Uygulama Başlatılıyor...</div>;
+  }
 
-      if (!isLoggedIn) return <Navigate to="/login" replace />;
-
-      // --- ROL KONTROLÜ DÜZELTİLDİ ---
-      // AuthContext'teki küçük harfli rolleri kullan
-      if (user?.role === 'ADMIN') return <Navigate to="/yonetici" replace />;
-      if (user?.role === 'USER') return <Navigate to="/personel" replace />;
-      // --- Düzeltme Sonu ---
-
-      // Rol tanımlı değilse veya beklenmedik bir durumsa login'e yönlendir
-      console.warn("DefaultRoute: Unknown user role or state issue, redirecting to /login");
-      return <Navigate to="/login" replace />;
+  // --- Kök Dizin (/) veya Bilinmeyen Rota (*) için Yönlendirici ---
+  const RedirectBasedOnAuth = () => {
+    // isLoading kontrolü zaten yukarıda yapıldı.
+    if (!isLoggedIn) {
+        console.log("RedirectBasedOnAuth: Not logged in, redirecting to /login.");
+        return <Navigate to="/login" replace />;
+    }
+    // Rolleri BÜYÜK HARF ile kontrol et
+    if (user?.role === 'ADMIN') {
+        console.log("RedirectBasedOnAuth: Admin user, redirecting to /yonetici.");
+        return <Navigate to="/yonetici" replace />;
+    }
+    if (user?.role === 'USER') {
+        console.log("RedirectBasedOnAuth: User role, redirecting to /personel.");
+        return <Navigate to="/personel" replace />;
+    }
+    // Tanımsız rol veya beklenmedik durum (olmamalı ama fallback)
+    console.warn("RedirectBasedOnAuth: Unknown role or state issue, redirecting to /login as fallback.");
+    return <Navigate to="/login" replace />;
   };
 
+  // --- /login Rotası İçin Özel Sarmalayıcı ---
+  const LoginPageWrapper = () => {
+    // isLoading kontrolü yukarıda yapıldı.
+    if (isLoggedIn) {
+      // Zaten giriş yapmışsa, tekrar login'e değil, panele yönlendir.
+      console.log("LoginPageWrapper: Already logged in, redirecting away from /login.");
+      return <RedirectBasedOnAuth />;
+    }
+    // Giriş yapmamışsa Login sayfasını göster
+    console.log("LoginPageWrapper: Not logged in, rendering LoginPage.");
+    return <LoginPage />;
+  };
+
+  // --- Ana Rota Tanımları ---
   return (
-      <Router>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
+     <Routes>
+       {/* Login Sayfası: Giriş yapmış kullanıcıları yönlendirir */}
+       <Route path="/login" element={<LoginPageWrapper />} />
 
-              {/* Yönetici Paneli - Rol kontrolü küçük harfle */}
-              <Route
-                path="/yonetici/*"
-                element={
-                  <ProtectedRoute allowedRoles={['ADMIN']}> {/* Küçük harf 'admin' */}
-                    <YoneticiApp />
-                  </ProtectedRoute>
-                }
-              />
+       {/* Yönetici Paneli: Sadece ADMIN erişebilir (Rol BÜYÜK HARF) */}
+       <Route
+         path="/yonetici/*" // Alt rotalara izin vermek için "/*"
+         element={
+           <ProtectedRoute allowedRoles={['ADMIN']}>
+             <YoneticiApp />
+           </ProtectedRoute>
+         }
+       />
 
-              {/* Personel Paneli - Rol kontrolü küçük harfle */}
-              <Route
-                path="/personel/*"
-                element={
-                   <ProtectedRoute allowedRoles={['ADMIN', 'USER']}> {/* Küçük harf roller */}
-                    <PersonelApp />
-                  </ProtectedRoute>
-                }
-              />
+       {/* Personel Paneli: ADMIN ve USER erişebilir (Roller BÜYÜK HARF) */}
+       <Route
+         path="/personel/*" // Alt rotalara izin vermek için "/*"
+         element={
+           <ProtectedRoute allowedRoles={['ADMIN', 'USER']}>
+             <PersonelApp />
+           </ProtectedRoute>
+         }
+       />
 
-              <Route path="/" element={<DefaultRoute />} />
+       {/* Kök Dizin: Giriş durumuna göre yönlendirir */}
+       <Route path="/" element={<RedirectBasedOnAuth />} />
 
-              <Route path="*" element={<div><h1>404 Not Found</h1><a href="/">Go Home</a></div>} />
-            </Routes>
-      </Router>
-  )
+       {/* Bulunamayan Rotalar (404) */}
+       {/* İstersen burayı da RedirectBasedOnAuth ile değiştirip bilinmeyen yolları da panele/logine atabilirsin */}
+       <Route path="*" element={
+           <div className="flex flex-col justify-center items-center min-h-screen">
+               <h1 className="text-4xl font-bold mb-4">404 - Sayfa Bulunamadı</h1>
+               {/* HashRouter kullandığımız için link #/ olmalı */}
+               <a href="#/" className="text-blue-500 hover:underline">Ana Sayfaya Dön</a>
+            </div>
+       } />
+     </Routes>
+  );
+}
+
+// Ana App bileşeni sadece Router'ı ve AppRoutes'ı render eder
+function App() {
+  return (
+    // Electron için genellikle HashRouter tercih edilir.
+    <Router>
+       <AppRoutes />
+    </Router>
+  );
 }
 
 export default App;

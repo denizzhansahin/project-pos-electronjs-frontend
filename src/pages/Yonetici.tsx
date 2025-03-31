@@ -1,10 +1,11 @@
 // App.tsx (Backend Entegrasyonu ile Güncellenmiş - Mevcut Yapı Korunarak)
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'; // useEffect eklendi
-import { LayoutGrid, ListOrdered, BarChart3 } from 'lucide-react';
+import { LayoutGrid, ListOrdered, BarChart3, LucidePanelTopClose } from 'lucide-react';
 import { Product, OrderItem, Table, CompletedOrder } from '../types';
 // initialProducts'ı artık başlangıçta kullanmayacağız, API'den çekeceğiz.
 // import { initialProducts } from './data';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 
 import { Calendar, Undo2 } from 'lucide-react'; // İkonlar
 
@@ -639,6 +640,22 @@ function YoneticiApp() {
                 {/* Metni md (medium) ve üzeri ekranlarda göster */}
                 <span className="hidden md:inline">Financial</span>
               </button>
+
+              <Link to="/login">
+              <button
+                onClick={() => window.location.href = '/login'}
+                className={`bg-blue-500 text-white rounded-md px-3 sm:px-4 h-full flex items-center gap-1 sm:gap-2 border-b-2 hover:bg-blue-600 transition-colors ${ // Mobil için padding ve gap ayarı
+                  activeTab === 'financial'
+                    ? 'border-blue-500 text-blue-500'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                title="Login"
+              >
+                <LucidePanelTopClose size={20} />
+                {/* Metni md (medium) ve üzeri ekranlarda göster */}
+                <span className="hidden md:inline">Login Sayfası</span>
+              </button>
+              </Link>
             </div>
           </div>
         </div>
