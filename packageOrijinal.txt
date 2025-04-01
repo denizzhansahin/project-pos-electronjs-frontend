@@ -5,10 +5,6 @@
   "type": "module",
   "description": "My awesome Vite + Electron App",
   "main": "electron.cjs",
-  "author": {
-    "name": "Denizhan Şahin - Space Teknopoli", 
-    "email": "mailimyoktursakinyazma@mailimyoktursakinyazma.com" 
-  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -59,15 +55,15 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "assets/POS.ico"
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns"
     },
     "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "icon": "assets/POS.png",
-      "category": "Utility"
+      "target": "AppImage",
+      "icon": "assets/icon.png"
     }
   }
 }
